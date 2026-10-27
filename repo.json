@@ -1,0 +1,23 @@
+[
+  {
+    "Author": "1Stalk",
+    "Name": "XIVcardsharp",
+    "Punchline": "Lightweight, high-performance Triple Triad solver.",
+    "Description": "High-performance Triple Triad solver with Adversarial Minimax, PIMC imperfect information hand sampling, and Open Tournament Draft evaluator.",
+    "InternalName": "XIVcardsharp",
+    "AssemblyVersion": "1.0.0.0",
+    "RepoUrl": "https://github.com/1Stalk/XIVcardsharp",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": 15,
+    "DownloadLinkInstall": "https://github.com/1Stalk/XIVcardsharp/releases/latest/download/XIVcardsharp.zip",
+    "DownloadLinkUpdate": "https://github.com/1Stalk/XIVcardsharp/releases/latest/download/XIVcardsharp.zip",
+    "IconUrl": "https://raw.githubusercontent.com/1Stalk/XIVcardsharp/master/images/icon.png",
+    "Tags": [
+      "triple triad",
+      "solver",
+      "open tournament",
+      "pvp",
+      "gold saucer"
+    ]
+  }
+]
