@@ -14,7 +14,7 @@ Smart Triple Triad solver and tournament autoplay for FFXIV.
 ## Install
 
 1. Dalamud → **Settings** → **Experimental**
-2. Add custom repository: `https://raw.githubusercontent.com/1Stalk/XIVcardsharp/master/repo.json`
+2. Add custom repository: `https://raw.githubusercontent.com/1Stalk/DalamudPlugins/main/pluginmaster.json`
 3. Install **XIVcardsharp** from the plugin installer
 
 ## Features
