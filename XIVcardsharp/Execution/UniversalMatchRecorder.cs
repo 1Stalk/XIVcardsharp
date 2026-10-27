@@ -119,6 +119,8 @@ public static class UniversalMatchRecorder
 
         private readonly StringBuilder _sb = new();
         private int _plyCount;
+        private int _lastRecordedPlayerNumPlaced = -1;
+        private int _lastRecordedOpponentPlaced = -1;
 
         public MatchSession(UniversalTriadState state, UniversalEngineMode mode)
         {
@@ -176,6 +178,12 @@ public static class UniversalMatchRecorder
             string strategy,
             IReadOnlyList<UniversalTriadSolver.CandidateMove>? candidates)
         {
+            if (state.NumCardsPlaced == _lastRecordedPlayerNumPlaced)
+            {
+                return;
+            }
+            _lastRecordedPlayerNumPlaced = state.NumCardsPlaced;
+
             _plyCount++;
             var card = (cardIdx is >= 0 and < 5) ? state.LocalPlayerHand[cardIdx] : null;
             var cardName = card?.Name ?? $"Slot #{cardIdx + 1}";
@@ -218,6 +226,12 @@ public static class UniversalMatchRecorder
             TriadCard? card,
             List<int> capturedSlots)
         {
+            if (state.NumCardsPlaced == _lastRecordedOpponentPlaced)
+            {
+                return;
+            }
+            _lastRecordedOpponentPlaced = state.NumCardsPlaced;
+
             _plyCount++;
             var cardName = card?.Name ?? "Unknown";
             var (x, y) = (boardPos % 3, boardPos / 3);
