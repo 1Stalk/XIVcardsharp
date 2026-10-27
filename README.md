@@ -4,7 +4,7 @@
 
 # XIVcardsharp
 
-When thinking through Triple Triad is too much effort.
+Get the umbrella faster. Think a lot less.
 
 Smart Triple Triad solver and tournament autoplay for FFXIV.
 
