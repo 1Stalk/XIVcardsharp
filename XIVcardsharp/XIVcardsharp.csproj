@@ -2,7 +2,7 @@
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
     <PropertyGroup>
         <Authors>1Stalk</Authors>
-        <Version>1.0.0.3</Version>
+        <Version>1.0.0.4</Version>
         <Description>High-performance Triple Triad solver and assistant for FFXIV (Open Tournaments and PvP).</Description>
     </PropertyGroup>
 
@@ -30,9 +30,9 @@
             <SyncFiles Include="$(TargetDir)*.dll;$(TargetDir)*.pdb;$(TargetDir)*.json" />
             <SyncImageFiles Include="$(TargetDir)images\*.*" />
         </ItemGroup>
-        <Copy SourceFiles="@(SyncFiles)" DestinationFolder="$(ProjectDir)bin\Debug\" Condition="'$(Platform)' == 'x64' And '$(Configuration)' == 'Debug'" ContinueOnError="true" />
-        <Copy SourceFiles="@(SyncFiles)" DestinationFolder="$(ProjectDir)bin\x64\Debug\" Condition="'$(Platform)' != 'x64' And '$(Configuration)' == 'Debug'" ContinueOnError="true" />
-        <Copy SourceFiles="@(SyncImageFiles)" DestinationFolder="$(ProjectDir)bin\Debug\images\" Condition="'$(Platform)' == 'x64' And '$(Configuration)' == 'Debug'" ContinueOnError="true" />
-        <Copy SourceFiles="@(SyncImageFiles)" DestinationFolder="$(ProjectDir)bin\x64\Debug\images\" Condition="'$(Platform)' != 'x64' And '$(Configuration)' == 'Debug'" ContinueOnError="true" />
+        <Copy SourceFiles="@(SyncFiles)" DestinationFolder="$(ProjectDir)bin\Debug\" Condition="'$(Configuration)' == 'Debug'" ContinueOnError="true" />
+        <Copy SourceFiles="@(SyncFiles)" DestinationFolder="$(ProjectDir)bin\x64\Debug\" Condition="'$(Configuration)' == 'Debug'" ContinueOnError="true" />
+        <Copy SourceFiles="@(SyncImageFiles)" DestinationFolder="$(ProjectDir)bin\Debug\images\" Condition="'$(Configuration)' == 'Debug'" ContinueOnError="true" />
+        <Copy SourceFiles="@(SyncImageFiles)" DestinationFolder="$(ProjectDir)bin\x64\Debug\images\" Condition="'$(Configuration)' == 'Debug'" ContinueOnError="true" />
     </Target>
 </Project>

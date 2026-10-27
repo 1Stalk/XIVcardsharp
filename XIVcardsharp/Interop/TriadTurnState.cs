@@ -60,7 +60,8 @@ public static class TriadTurnState
     public static bool IsForcedCardPickPhase(byte turnState) => turnState == (byte)TurnState.MaskedMove;
 
     public static bool CanAct(byte turnState, bool isPlayerTurn) =>
-        isPlayerTurn || IsForcedCardPickPhase(turnState);
+        IsForcedCardPickPhase(turnState) ||
+        (IsBoardPickPhase(turnState) && isPlayerTurn);
 
     public static unsafe bool IsTurnBannerVisible(AtkUnitBase* unit) =>
         unit is not null && HasTurnBannerText(unit->RootNode, 0);
