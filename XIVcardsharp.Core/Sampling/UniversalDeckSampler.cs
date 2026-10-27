@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using XIVcardsharp.Core.Data;
 using XIVcardsharp.Core.State;
 
@@ -25,7 +26,14 @@ public class UniversalDeckSampler
 
         foreach (var r in Enum.GetValues<ETriadCardRarity>())
         {
-            CardsByRarity[r] = [];
+            if (!CardsByRarity.ContainsKey(r))
+            {
+                CardsByRarity[r] = [];
+            }
+            else
+            {
+                CardsByRarity[r].Clear();
+            }
         }
 
         foreach (var card in db.cards)
@@ -36,7 +44,10 @@ public class UniversalDeckSampler
             }
         }
 
-        _initialized = true;
+        if (db.cards.Count >= 5)
+        {
+            _initialized = true;
+        }
     }
 
     public static void ResetCache()
@@ -114,7 +125,9 @@ public class UniversalDeckSampler
             {
                 var handIndex = hiddenIndices[slotIdx];
                 var tier = (slotIdx < neededTiers.Count) ? neededTiers[slotIdx] : ETriadCardRarity.Common;
-                var pool = CardsByRarity.TryGetValue(tier, out var list) ? list : [];
+                var pool = CardsByRarity.TryGetValue(tier, out var list) && list.Count > 0
+                    ? list
+                    : (CardsByRarity.Values.FirstOrDefault(l => l.Count > 0) ?? []);
 
                 TriadCard? pickedCard = null;
                 if (pool.Count > 0)

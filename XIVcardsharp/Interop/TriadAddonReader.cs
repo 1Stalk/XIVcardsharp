@@ -62,7 +62,7 @@ public static unsafe class TriadAddonReader
         {
             LocalPlayerColor = localColor,
             TurnState = (byte)addon->TurnState,
-            IsPlayerTurn = TriadTurnState.ReadIsPlayerTurn(&addon->AtkUnitBase),
+            IsPlayerTurn = TriadTurnState.ReadIsPlayerTurn(&addon->AtkUnitBase, localColor),
             TurnBannerVisible = TriadTurnState.IsTurnBannerVisible(&addon->AtkUnitBase),
             RuleNames = ruleNames,
             Modifiers = ResolveModifiers(ruleNames)
