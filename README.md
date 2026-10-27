@@ -22,3 +22,8 @@ Smart Triple Triad solver and tournament autoplay for FFXIV.
 Open Tournaments · Tournament Draft · Battlehall & PvP · Friendly Matches
 
 Type `/cardsharp` in-game, pick a mode, and turn it on. The solver drafts optimal decks and plays winning moves automatically.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE.md).
+
