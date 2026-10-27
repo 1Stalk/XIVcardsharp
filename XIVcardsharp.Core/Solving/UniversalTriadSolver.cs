@@ -32,6 +32,48 @@ public class UniversalTriadSolver
         public float PositionalScore;
     }
 
+    public record UniversalSolveResult(
+        int CardIdx,
+        int BoardPos,
+        float EV,
+        float PositionalScore,
+        int ElapsedMs,
+        string Strategy,
+        List<CandidateMove> Candidates,
+        int NumCardsPlacedAtStart);
+
+    public Task<UniversalSolveResult> SolveAsync(UniversalTriadState state, CancellationToken cancellationToken = default)
+    {
+        var stateSnapshot = state.Clone();
+        var cardsPlacedAtStart = stateSnapshot.NumCardsPlaced;
+
+        return Task.Run(() =>
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var (cardIdx, boardPos, ev, candidates) = Solve(stateSnapshot, cancellationToken);
+            sw.Stop();
+
+            var strategy = stateSnapshot.NumCardsPlaced >= 4
+                ? "Endgame Exhaustive Alpha-Beta (Depth 10)"
+                : (stateSnapshot.NumCardsPlaced <= 1
+                    ? "Opening Adversarial Minimax (Depth 4)"
+                    : "Midgame Adversarial Minimax (Depth 6)");
+
+            var matchingCandidate = candidates.FirstOrDefault(c => c.CardIdx == cardIdx && c.BoardPos == boardPos);
+            var posScore = matchingCandidate.PositionalScore;
+
+            return new UniversalSolveResult(
+                cardIdx,
+                boardPos,
+                ev,
+                posScore,
+                (int)sw.ElapsedMilliseconds,
+                strategy,
+                candidates,
+                cardsPlacedAtStart);
+        }, cancellationToken);
+    }
+
     public (int bestCardIdx, int bestBoardPos, float bestEv, List<CandidateMove> candidates) Solve(UniversalTriadState state, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
