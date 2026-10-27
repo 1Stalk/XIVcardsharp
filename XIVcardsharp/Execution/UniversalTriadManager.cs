@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using XIVcardsharp.Core.Data;
+using XIVcardsharp.Core.Engine;
 using XIVcardsharp.Core.Solving;
 using XIVcardsharp.Core.State;
 using XIVcardsharp.Interop;
@@ -291,6 +292,24 @@ public static unsafe class UniversalTriadManager
         {
             Status = UniversalEngineStatus.Evaluating;
             StatusSummary = $"Thinking ({state.LocalPlayerColor})...";
+
+            // Track Swap rule: if Swap is active, detect which card was given to the opponent and register it in KnownOpponentCards
+            var hasSwap = state.Modifiers.Exists(m => m is TriadGameModifierSwap) ||
+                state.RuleNames.Exists(r =>
+                    r.Contains("Swap", StringComparison.OrdinalIgnoreCase) ||
+                    r.Contains("Échange", StringComparison.OrdinalIgnoreCase) ||
+                    r.Contains("Tausch", StringComparison.OrdinalIgnoreCase) ||
+                    r.Contains("スワップ", StringComparison.OrdinalIgnoreCase) ||
+                    r.Contains("交换", StringComparison.OrdinalIgnoreCase));
+
+            if (hasSwap && state.InitialPlayerCards.Count == 5)
+            {
+                var givenCard = state.InitialPlayerCards.FirstOrDefault(c => c != null && !state.LocalPlayerHand.Any(h => h != null && h.Id == c.Id));
+                if (givenCard != null && !state.KnownOpponentCards.Any(k => k.Id == givenCard.Id))
+                {
+                    state.KnownOpponentCards.Add(givenCard);
+                }
+            }
 
             var sampleCount = Math.Clamp(Plugin.Configuration.SampleCount, 50, 500);
             var sw = Stopwatch.StartNew();

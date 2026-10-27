@@ -1,7 +1,10 @@
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Windowing;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
+using XIVcardsharp.Core.Draft;
 using XIVcardsharp.Execution;
 using XIVcardsharp.Interop;
 
@@ -67,40 +70,55 @@ public class MainWindow : Window, IDisposable
         var isDraftOpen = TournamentDraftManager.IsDraftWindowOpen(out var draftRules);
         if (isDraftOpen)
         {
-            ImGui.TextColored(new Vector4(0.2f, 1.0f, 0.4f, 1.0f), "● Open Tournament Draft Window Detected!");
-            if (draftRules.Count > 0)
+            var eval = TournamentDraftManager.GetCurrentEvaluation(out var draftState);
+            if (eval != null && draftState != null)
             {
-                ImGui.TextDisabled($"Active Rules: {string.Join(", ", draftRules)}");
-            }
-
-            var eval = TournamentDraftManager.GetCurrentEvaluation();
-            if (eval != null)
-            {
-                ImGui.TextDisabled($"Best Synergies: {eval.Summary}");
-            }
-
-            if (ImGui.Button("✨ Select Optimal Tournament Deck", new Vector2(-1, 32)))
-            {
-                if (TournamentDraftManager.ApplyOptimalDraft(out var msg))
+                ImGui.TextColored(new Vector4(0.2f, 1.0f, 0.4f, 1.0f), "● Open Tournament Draft Recommendations");
+                if (draftRules.Count > 0)
                 {
-                    _draftStatusMessage = msg;
+                    ImGui.SameLine();
+                    ImGui.TextDisabled($"({string.Join(", ", draftRules)})");
                 }
-                else
+
+                ImGui.Spacing();
+
+                DrawDraftRow(1, eval.Set1Option, draftState.Set1Options);
+                DrawDraftRow(2, eval.Set2Option, draftState.Set2Options);
+                DrawDraftRow(3, eval.Set3Option, draftState.Set3Options);
+
+                if (!string.IsNullOrEmpty(eval.Summary))
                 {
-                    _draftStatusMessage = $"Draft failed: {msg}";
+                    ImGui.Spacing();
+                    ImGui.TextDisabled(eval.Summary);
                 }
+
+                ImGui.Spacing();
+                if (ImGui.Button("Apply Choices In-Game", new Vector2(-1, 26)))
+                {
+                    if (TournamentDraftManager.ApplyOptimalDraft(out var msg))
+                    {
+                        _draftStatusMessage = msg;
+                    }
+                    else
+                    {
+                        _draftStatusMessage = $"Draft failed: {msg}";
+                    }
+                }
+            }
+            else
+            {
+                ImGui.TextColored(new Vector4(1.0f, 0.8f, 0.2f, 1.0f), "● Calculating optimal draft choices...");
             }
         }
         else
         {
-            ImGui.BeginDisabled();
-            ImGui.Button("Open Tournament Draft (No Draft Active)", new Vector2(-1, 28));
-            ImGui.EndDisabled();
+            _draftStatusMessage = string.Empty;
+            ImGui.TextDisabled("Tournament Draft: Inactive");
         }
 
         if (!string.IsNullOrEmpty(_draftStatusMessage))
         {
-            ImGui.TextWrapped(_draftStatusMessage);
+            ImGui.TextColored(new Vector4(0.4f, 0.9f, 0.4f, 1.0f), _draftStatusMessage);
         }
 
         ImGui.Spacing();
@@ -167,5 +185,36 @@ public class MainWindow : Window, IDisposable
                 UniversalMatchRecorder.OpenLogsFolder();
             }
         }
+    }
+
+    private static void DrawDraftRow(int rowNumber, int optionIndex, List<TournamentDraftOption> options)
+    {
+        ImGui.TextColored(new Vector4(0.4f, 0.8f, 1.0f, 1.0f), $"Row {rowNumber}:");
+        ImGui.SameLine();
+        ImGui.TextColored(new Vector4(1.0f, 0.88f, 0.2f, 1.0f), $"Choice #{optionIndex + 1}");
+        ImGui.SameLine();
+
+        var cards = FormatOptionCards(options, optionIndex);
+        ImGui.TextDisabled($"— {cards}");
+    }
+
+    private static string FormatOptionCards(List<TournamentDraftOption> options, int optionIndex)
+    {
+        if (options == null || optionIndex < 0 || optionIndex >= options.Count)
+        {
+            return "-";
+        }
+
+        var opt = options[optionIndex];
+        if (opt.Cards == null || opt.Cards.Count == 0)
+        {
+            return "-";
+        }
+
+        return string.Join(", ", opt.Cards.Select(c =>
+        {
+            var stars = c.Rarity <= 0 ? 1 : (c.Rarity <= 4 ? c.Rarity + 1 : c.Rarity);
+            return $"{c.Name} (★{stars})";
+        }));
     }
 }

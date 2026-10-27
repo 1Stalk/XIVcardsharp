@@ -53,9 +53,23 @@ public class RarityBudgetTracker
             return (null, null);
         }
 
-        var sourceCards = state.InitialPlayerCards.Count == 5
-            ? state.InitialPlayerCards
-            : [.. state.LocalPlayerHand.Where(c => c != null).Select(c => c!)];
+        // Method 1: Compare pre-swap InitialPlayerCards with current LocalPlayerHand
+        if (state.InitialPlayerCards.Count == 5)
+        {
+            var given = state.InitialPlayerCards.FirstOrDefault(c => c != null && !state.LocalPlayerHand.Any(h => h != null && h.Id == c.Id));
+            var taken = state.LocalPlayerHand.FirstOrDefault(h => h != null && !state.InitialPlayerCards.Any(c => c != null && c.Id == h.Id));
+            if (given != null && taken != null)
+            {
+                return (given.Rarity, taken.Rarity);
+            }
+        }
+
+        // Method 2: Check rarity frequency distribution for missing (0) and extra (>1) tiers
+        var sourceCards = state.LocalPlayerHand.Where(c => c != null && c.IsValid()).Select(c => c!).ToList();
+        if (sourceCards.Count != 5 && state.InitialPlayerCards.Count == 5)
+        {
+            sourceCards = [.. state.InitialPlayerCards.Where(c => c != null && c.IsValid())];
+        }
 
         if (sourceCards.Count != 5)
         {
@@ -76,78 +90,66 @@ public class RarityBudgetTracker
             }
         }
 
-        ETriadCardRarity? given = null;
-        ETriadCardRarity? taken = null;
+        ETriadCardRarity? givenTier = null;
+        ETriadCardRarity? takenTier = null;
 
         foreach (var (rarity, count) in counts)
         {
             if (count == 0)
             {
-                given = rarity;
+                givenTier = rarity;
             }
             else if (count > 1)
             {
-                taken = rarity;
+                takenTier = rarity;
             }
         }
 
-        return (given, taken);
+        return (givenTier, takenTier);
     }
 
-    public List<ETriadCardRarity> GetDraftRemainingTiers(int hiddenCount)
+    public List<ETriadCardRarity> GetDraftRemainingTiers(int hiddenCount, Random? rng = null)
     {
-        var expectedRedCounts = new Dictionary<ETriadCardRarity, int>();
-        var draftTiers = new[]
-        {
-            ETriadCardRarity.Legendary,
-            ETriadCardRarity.Epic,
-            ETriadCardRarity.Rare,
-            ETriadCardRarity.Uncommon,
-            ETriadCardRarity.Common
-        };
-
-        if (InitialPlayerCards.Count == 5)
-        {
-            // Mathematical invariant of Open Tournament Draft:
-            // Across both players, there are exactly 2 cards of each tier in the match (total 10 cards).
-            // OpponentExpected(tier) = 2 - PlayerInitial(tier).
-            foreach (var rarity in draftTiers)
-            {
-                var playerCount = InitialPlayerCards.Count(c => c != null && c.Rarity == rarity);
-                expectedRedCounts[rarity] = Math.Max(0, 2 - playerCount);
-            }
-        }
-        else
-        {
-            foreach (var rarity in draftTiers)
-            {
-                expectedRedCounts[rarity] = 1;
-            }
-
-            if (SwappedTiers.GivenTier.HasValue && SwappedTiers.TakenTier.HasValue)
-            {
-                expectedRedCounts[SwappedTiers.GivenTier.Value]++;
-                expectedRedCounts[SwappedTiers.TakenTier.Value]--;
-            }
-        }
-
+        var random = rng ?? Random.Shared;
         var tiers = new List<ETriadCardRarity>();
-        foreach (var rarity in draftTiers)
-        {
-            var remaining = expectedRedCounts[rarity] - KnownCounts[rarity];
-            for (var k = 0; k < remaining; k++)
-            {
-                tiers.Add(rarity);
-            }
-        }
 
-        while (tiers.Count > hiddenCount)
+        var max5 = 1 + (SwappedTiers.GivenTier == ETriadCardRarity.Legendary ? 1 : 0) - (SwappedTiers.TakenTier == ETriadCardRarity.Legendary ? 1 : 0);
+        max5 = Math.Max(0, max5);
+
+        var max4 = 2 + (SwappedTiers.GivenTier == ETriadCardRarity.Epic ? 1 : 0) - (SwappedTiers.TakenTier == ETriadCardRarity.Epic ? 1 : 0);
+        max4 = Math.Max(0, max4);
+
+        var canHave5 = KnownCounts[ETriadCardRarity.Legendary] < max5;
+        var remaining4 = Math.Max(0, max4 - KnownCounts[ETriadCardRarity.Epic]);
+
+        for (var i = 0; i < hiddenCount; i++)
         {
-            tiers.RemoveAt(tiers.Count - 1);
-        }
-        while (tiers.Count < hiddenCount)
-        {
-            tiers.Add(ETriadCardRarity.Common);
+            if (canHave5)
+            {
+                tiers.Add(ETriadCardRarity.Legendary);
+                canHave5 = false;
+            }
+            else if (remaining4 > 0 && random.Next(100) < 60)
+            {
+                tiers.Add(ETriadCardRarity.Epic);
+                remaining4--;
+            }
+            else
+            {
+                var roll = random.Next(100);
+                if (roll < 55)
+                {
+                    tiers.Add(ETriadCardRarity.Rare);
+                }
+                else if (roll < 85)
+                {
+                    tiers.Add(ETriadCardRarity.Uncommon);
+                }
+                else
+                {
+                    tiers.Add(ETriadCardRarity.Common);
+                }
+            }
         }
 
         return tiers;

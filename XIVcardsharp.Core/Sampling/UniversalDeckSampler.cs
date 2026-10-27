@@ -84,6 +84,39 @@ public class UniversalDeckSampler
             }
         }
 
+        // Cards that we know the opponent has in hand, but which are currently hidden (e.g. from Swap)
+        var unplacedKnownCards = new List<TriadCard>();
+        foreach (var card in knownOpponentCards)
+        {
+            if (card == null || !card.IsValid()) continue;
+
+            var onBoard = false;
+            for (var b = 0; b < 9; b++)
+            {
+                if (state.BoardCards[b] != null && state.BoardCards[b]!.Id == card.Id)
+                {
+                    onBoard = true;
+                    break;
+                }
+            }
+            if (onBoard) continue;
+
+            var inRevealedHand = false;
+            for (var h = 0; h < 5; h++)
+            {
+                if (opponentRevealed[h] && opponentHand[h] != null && opponentHand[h]!.Id == card.Id)
+                {
+                    inRevealedHand = true;
+                    break;
+                }
+            }
+
+            if (!inRevealedHand && !unplacedKnownCards.Any(c => c.Id == card.Id))
+            {
+                unplacedKnownCards.Add(card);
+            }
+        }
+
         var swappedTiers = (mode == UniversalEngineMode.OpenTournamentDraft)
             ? RarityBudgetTracker.DetectDraftSwap(state)
             : default;
@@ -91,16 +124,6 @@ public class UniversalDeckSampler
 
         for (var sampleIdx = 0; sampleIdx < sampleCount; sampleIdx++)
         {
-            List<ETriadCardRarity> neededTiers = mode == UniversalEngineMode.OpenTournamentDraft
-                ? tracker.GetDraftRemainingTiers(hiddenIndices.Count)
-                : tracker.GetUniversalRemainingTiers(hiddenIndices.Count, Random.Shared);
-
-            for (var k = neededTiers.Count - 1; k > 0; k--)
-            {
-                var r = Random.Shared.Next(k + 1);
-                (neededTiers[k], neededTiers[r]) = (neededTiers[r], neededTiers[k]);
-            }
-
             var sampleCards = new TriadCard?[5];
             var usedCardIds = new HashSet<int>();
 
@@ -113,17 +136,34 @@ public class UniversalDeckSampler
                 }
             }
 
-            foreach (var card in knownOpponentCards)
+            var availableHidden = new List<int>(hiddenIndices);
+
+            // 1. Assign known unplaced opponent cards directly to hidden slots
+            foreach (var knownCard in unplacedKnownCards)
             {
-                if (card != null)
-                {
-                    usedCardIds.Add(card.Id);
-                }
+                if (availableHidden.Count == 0) break;
+                var randPos = Random.Shared.Next(availableHidden.Count);
+                var slot = availableHidden[randPos];
+                availableHidden.RemoveAt(randPos);
+
+                sampleCards[slot] = knownCard;
+                usedCardIds.Add(knownCard.Id);
             }
 
-            for (var slotIdx = 0; slotIdx < hiddenIndices.Count; slotIdx++)
+            // 2. Sample remaining unknown slots according to rarity budget
+            var neededTiers = (mode == UniversalEngineMode.OpenTournamentDraft)
+                ? tracker.GetDraftRemainingTiers(availableHidden.Count, Random.Shared)
+                : tracker.GetUniversalRemainingTiers(availableHidden.Count, Random.Shared);
+
+            for (var k = neededTiers.Count - 1; k > 0; k--)
             {
-                var handIndex = hiddenIndices[slotIdx];
+                var r = Random.Shared.Next(k + 1);
+                (neededTiers[k], neededTiers[r]) = (neededTiers[r], neededTiers[k]);
+            }
+
+            for (var slotIdx = 0; slotIdx < availableHidden.Count; slotIdx++)
+            {
+                var handIndex = availableHidden[slotIdx];
                 var tier = (slotIdx < neededTiers.Count) ? neededTiers[slotIdx] : ETriadCardRarity.Common;
                 var pool = CardsByRarity.TryGetValue(tier, out var list) && list.Count > 0
                     ? list

@@ -143,7 +143,7 @@ public static class UniversalMatchRecorder
                 var card = state.BlueHand[i];
                 if (card != null && state.BlueCardRevealed[i])
                 {
-                    _sb.AppendLine($"  Slot #{i + 1}: {card.Name} (★{(int)card.Rarity + 1}) [U:{FormatSide(card.Sides[0])} L:{FormatSide(card.Sides[3])} D:{FormatSide(card.Sides[2])} R:{FormatSide(card.Sides[1])}]");
+                    _sb.AppendLine($"  Slot #{i + 1}: {card.Name} (★{(int)card.Rarity + 1}) [U:{FormatSide(card.Sides[0])} L:{FormatSide(card.Sides[1])} D:{FormatSide(card.Sides[2])} R:{FormatSide(card.Sides[3])}]");
                 }
                 else
                 {
@@ -158,7 +158,7 @@ public static class UniversalMatchRecorder
                 var card = state.RedHand[i];
                 if (card != null && state.RedCardRevealed[i])
                 {
-                    _sb.AppendLine($"  Slot #{i + 1}: {card.Name} (★{(int)card.Rarity + 1}) [U:{FormatSide(card.Sides[0])} L:{FormatSide(card.Sides[3])} D:{FormatSide(card.Sides[2])} R:{FormatSide(card.Sides[1])}]");
+                    _sb.AppendLine($"  Slot #{i + 1}: {card.Name} (★{(int)card.Rarity + 1}) [U:{FormatSide(card.Sides[0])} L:{FormatSide(card.Sides[1])} D:{FormatSide(card.Sides[2])} R:{FormatSide(card.Sides[3])}]");
                 }
                 else
                 {

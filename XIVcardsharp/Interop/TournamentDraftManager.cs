@@ -11,6 +11,7 @@ namespace XIVcardsharp.Interop;
 
 public static unsafe class TournamentDraftManager
 {
+    private static TournamentDraftState? _lastState;
     private static TournamentDraftResult? _lastEvaluation;
     private static DateTime _lastEvalTime = DateTime.MinValue;
 
@@ -20,10 +21,11 @@ public static unsafe class TournamentDraftManager
         if (!TournamentDraftReader.TryGetDraftAddon(out _))
         {
             _lastEvaluation = null;
+            _lastState = null;
             return false;
         }
 
-        var state = TournamentDraftReader.ReadDraftState();
+        var eval = GetCurrentEvaluation(out var state);
         if (state != null)
         {
             rules = state.Rules;
@@ -32,16 +34,19 @@ public static unsafe class TournamentDraftManager
         return true;
     }
 
-    public static TournamentDraftResult? GetCurrentEvaluation()
+    public static TournamentDraftResult? GetCurrentEvaluation(out TournamentDraftState? draftState)
     {
+        draftState = null;
         if (!TournamentDraftReader.TryGetDraftAddon(out _))
         {
             _lastEvaluation = null;
+            _lastState = null;
             return null;
         }
 
-        if (_lastEvaluation != null && (DateTime.UtcNow - _lastEvalTime).TotalMilliseconds < 500)
+        if (_lastEvaluation != null && _lastState != null && (DateTime.UtcNow - _lastEvalTime).TotalMilliseconds < 500)
         {
+            draftState = _lastState;
             return _lastEvaluation;
         }
 
@@ -51,10 +56,14 @@ public static unsafe class TournamentDraftManager
             return null;
         }
 
+        _lastState = state;
         _lastEvaluation = TournamentDraftEvaluator.Evaluate(state);
         _lastEvalTime = DateTime.UtcNow;
+        draftState = _lastState;
         return _lastEvaluation;
     }
+
+    public static TournamentDraftResult? GetCurrentEvaluation() => GetCurrentEvaluation(out _);
 
     public static bool ApplyOptimalDraft(out string resultMessage)
     {

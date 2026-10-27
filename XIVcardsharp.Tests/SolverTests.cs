@@ -159,4 +159,247 @@ public class SolverTests
         Assert.True(bestBoard >= 0);
         Assert.NotEmpty(candidates);
     }
+
+    [Fact]
+    public void FallenAce_AllowsOneToCaptureAce()
+    {
+        var sim = new TriadGameSimulation();
+        sim.Initialize([new TriadGameModifierFallenAce()]);
+
+        var cardAce = new TriadCard(1, ETriadCardRarity.Legendary, ETriadCardType.None, 10, 10, 10, 10);
+        var cardOne = new TriadCard(2, ETriadCardRarity.Common, ETriadCardType.None, 1, 1, 1, 1);
+
+        var deckBlue = new TriadDeck([cardOne]);
+        var deckRed = new TriadDeck([cardAce]);
+
+        var state = sim.StartGame(deckBlue, deckRed, ETriadGameState.InProgressRed);
+
+        // Red plays Ace at center (pos 4)
+        sim.PlaceCard(state, 0, state.deckRed, ETriadCardOwner.Red, 4);
+        Assert.Equal(ETriadCardOwner.Red, state.board[4].owner);
+
+        // Blue plays 1 at top (pos 1). Under Fallen Ace, bottom of pos 1 (1) attacks top of pos 4 (10) and captures it!
+        state.state = ETriadGameState.InProgressBlue;
+        sim.PlaceCard(state, 0, state.deckBlue, ETriadCardOwner.Blue, 1);
+
+        Assert.Equal(ETriadCardOwner.Blue, state.board[4].owner);
+    }
+
+    [Fact]
+    public void SameRule_CapturesWhenTwoSidesMatch()
+    {
+        var sim = new TriadGameSimulation();
+        sim.Initialize([new TriadGameModifierSame()]);
+
+        // Top neighbor at pos 1: numDown is 7 (touches center Up)
+        // TriadCard constructor: (id, rarity, type, numUp, numDown, numLeft, numRight)
+        var neiTop = new TriadCard(1, ETriadCardRarity.Rare, ETriadCardType.None, 5, 7, 5, 5);
+        // Left neighbor at pos 3: numRight is 8 (touches center Left)
+        var neiLeft = new TriadCard(2, ETriadCardRarity.Rare, ETriadCardType.None, 5, 5, 5, 8);
+        // Player card placed at pos 4 (center): numUp is 7, numLeft is 8
+        var playerCenter = new TriadCard(3, ETriadCardRarity.Rare, ETriadCardType.None, 7, 5, 8, 5);
+
+        var deckBlue = new TriadDeck([playerCenter]);
+        var deckRed = new TriadDeck([neiTop, neiLeft]);
+
+        var state = sim.StartGame(deckBlue, deckRed, ETriadGameState.InProgressRed);
+
+        // Place opponent card at pos 1
+        sim.PlaceCard(state, 0, state.deckRed, ETriadCardOwner.Red, 1);
+        Assert.Equal(ETriadCardOwner.Red, state.board[1].owner);
+
+        // Prepare Red turn to place second card at pos 3
+        state.state = ETriadGameState.InProgressRed;
+        sim.PlaceCard(state, 1, state.deckRed, ETriadCardOwner.Red, 3);
+        Assert.Equal(ETriadCardOwner.Red, state.board[3].owner);
+
+        // Blue plays at center (pos 4): Up matches pos 1 Down (7==7), Left matches pos 3 Right (8==8) -> Same triggers!
+        state.state = ETriadGameState.InProgressBlue;
+        sim.PlaceCard(state, 0, state.deckBlue, ETriadCardOwner.Blue, 4);
+
+        Assert.Equal(ETriadCardOwner.Blue, state.board[1].owner);
+        Assert.Equal(ETriadCardOwner.Blue, state.board[3].owner);
+    }
+
+    [Fact]
+    public void RarityBudgetTracker_CapsTournamentDecksCorrectly()
+    {
+        // Standard Open Tournament draft allows max 1x 5★, 1x 4★, 1x 3★, 1x 2★, 1x 1★
+        var tracker = new RarityBudgetTracker(
+            UniversalEngineMode.OpenTournamentDraft,
+            knownOpponentCards: [new TriadCard(1, ETriadCardRarity.Legendary, ETriadCardType.None, 9, 9, 9, 9)]);
+
+        // 5★ is already known, so remaining 5★ slots must be 0
+        Assert.Equal(1, tracker.KnownCounts[ETriadCardRarity.Legendary]);
+    }
+
+    [Fact]
+    public void GetNeighbors_ReturnsCorrectCardinalNeighbors()
+    {
+        // Center (pos 4): Up is pos 1, Down is pos 7, Left is pos 3, Right is pos 5
+        var neisCenter = TriadGameSimulation.GetNeighbors(4);
+        Assert.Equal(1, neisCenter[(int)ETriadGameSide.Up]);
+        Assert.Equal(7, neisCenter[(int)ETriadGameSide.Down]);
+        Assert.Equal(3, neisCenter[(int)ETriadGameSide.Left]);
+        Assert.Equal(5, neisCenter[(int)ETriadGameSide.Right]);
+
+        // Top-Left (pos 0): Up is -1, Left is -1, Down is pos 3, Right is pos 1
+        var neisTopLeft = TriadGameSimulation.GetNeighbors(0);
+        Assert.Equal(-1, neisTopLeft[(int)ETriadGameSide.Up]);
+        Assert.Equal(-1, neisTopLeft[(int)ETriadGameSide.Left]);
+        Assert.Equal(3, neisTopLeft[(int)ETriadGameSide.Down]);
+        Assert.Equal(1, neisTopLeft[(int)ETriadGameSide.Right]);
+
+        // Top-Right (pos 2): Up is -1, Right is -1, Down is pos 5, Left is pos 1
+        var neisTopRight = TriadGameSimulation.GetNeighbors(2);
+        Assert.Equal(-1, neisTopRight[(int)ETriadGameSide.Up]);
+        Assert.Equal(-1, neisTopRight[(int)ETriadGameSide.Right]);
+        Assert.Equal(5, neisTopRight[(int)ETriadGameSide.Down]);
+        Assert.Equal(1, neisTopRight[(int)ETriadGameSide.Left]);
+    }
+
+    [Fact]
+    public void HorizontalCombat_CapturesUsingCorrectLeftAndRightSides()
+    {
+        var sim = new TriadGameSimulation();
+        sim.Initialize([]);
+
+        // TriadCard: (id, rarity, type, numUp, numDown, numLeft, numRight)
+        // Opponent at pos 3 (Left of center): Right is 4
+        var cardLeft = new TriadCard(1, ETriadCardRarity.Rare, ETriadCardType.None, 5, 5, 5, 4);
+        // Opponent at pos 5 (Right of center): Left is 6
+        var cardRight = new TriadCard(2, ETriadCardRarity.Rare, ETriadCardType.None, 5, 5, 6, 5);
+        // Player at pos 4 (center): Left is 8, Right is 2
+        var cardCenter = new TriadCard(3, ETriadCardRarity.Rare, ETriadCardType.None, 5, 5, 8, 2);
+
+        var deckBlue = new TriadDeck([cardCenter]);
+        var deckRed = new TriadDeck([cardLeft, cardRight]);
+
+        var state = sim.StartGame(deckBlue, deckRed, ETriadGameState.InProgressRed);
+
+        // Red places card at pos 3 and pos 5
+        sim.PlaceCard(state, 0, state.deckRed, ETriadCardOwner.Red, 3);
+        state.state = ETriadGameState.InProgressRed;
+        sim.PlaceCard(state, 1, state.deckRed, ETriadCardOwner.Red, 5);
+
+        Assert.Equal(ETriadCardOwner.Red, state.board[3].owner);
+        Assert.Equal(ETriadCardOwner.Red, state.board[5].owner);
+
+        // Blue places card at center (pos 4): Left (8) beats pos 3 Right (4); Right (2) loses to pos 5 Left (6)
+        state.state = ETriadGameState.InProgressBlue;
+        sim.PlaceCard(state, 0, state.deckBlue, ETriadCardOwner.Blue, 4);
+
+        // Pos 3 must be captured (Blue); Pos 5 must remain Red
+        Assert.Equal(ETriadCardOwner.Blue, state.board[3].owner);
+        Assert.Equal(ETriadCardOwner.Red, state.board[5].owner);
+    }
+
+    [Fact]
+    public void PlusRule_CapturesHorizontallyWithMatchingSums()
+    {
+        var sim = new TriadGameSimulation();
+        sim.Initialize([new TriadGameModifierPlus()]);
+
+        // Bottom-left at pos 6: Right is 9
+        var cardBottomLeft = new TriadCard(1, ETriadCardRarity.Rare, ETriadCardType.None, 5, 5, 5, 9);
+        // Bottom-right at pos 8: Left is 4
+        var cardBottomRight = new TriadCard(2, ETriadCardRarity.Rare, ETriadCardType.None, 5, 5, 4, 5);
+        // Bottom-center at pos 7 (Gajasura-style): Left is 4, Right is 9
+        // Left sum = 4 + 9 = 13; Right sum = 9 + 4 = 13 -> Plus triggers!
+        var cardBottomCenter = new TriadCard(3, ETriadCardRarity.Rare, ETriadCardType.None, 5, 5, 4, 9);
+
+        var deckBlue = new TriadDeck([cardBottomLeft, cardBottomRight]);
+        var deckRed = new TriadDeck([cardBottomCenter]);
+
+        var state = sim.StartGame(deckBlue, deckRed, ETriadGameState.InProgressBlue);
+
+        // Blue places cards at pos 6 and pos 8
+        sim.PlaceCard(state, 0, state.deckBlue, ETriadCardOwner.Blue, 6);
+        state.state = ETriadGameState.InProgressBlue;
+        sim.PlaceCard(state, 1, state.deckBlue, ETriadCardOwner.Blue, 8);
+
+        Assert.Equal(ETriadCardOwner.Blue, state.board[6].owner);
+        Assert.Equal(ETriadCardOwner.Blue, state.board[8].owner);
+
+        // Red plays card at pos 7: matching sums of 13 trigger Plus on both adjacent cards!
+        state.state = ETriadGameState.InProgressRed;
+        sim.PlaceCard(state, 0, state.deckRed, ETriadCardOwner.Red, 7);
+
+        Assert.Equal(ETriadCardOwner.Red, state.board[6].owner);
+        Assert.Equal(ETriadCardOwner.Red, state.board[8].owner);
+    }
+
+    [Fact]
+    public void DraftSwap_DetectsExactSwappedCards()
+    {
+        var state = new UniversalTriadState
+        {
+            LocalPlayerColor = ETriadCardOwner.Blue,
+            RuleNames = ["Swap"]
+        };
+
+        var ramuh = new TriadCard(10, ETriadCardRarity.Epic, ETriadCardType.None, 8, 8, 1, 8);
+        var beatrice = new TriadCard(20, ETriadCardRarity.Rare, ETriadCardType.None, 6, 7, 7, 4);
+
+        state.InitialPlayerCards =
+        [
+            new TriadCard(1, ETriadCardRarity.Legendary, ETriadCardType.None, 9, 9, 9, 9),
+            ramuh, // Given away!
+            new TriadCard(2, ETriadCardRarity.Rare, ETriadCardType.None, 5, 5, 5, 5),
+            new TriadCard(3, ETriadCardRarity.Uncommon, ETriadCardType.None, 3, 3, 3, 3),
+            new TriadCard(4, ETriadCardRarity.Common, ETriadCardType.None, 1, 1, 1, 1)
+        ];
+
+        // Player's hand after swap contains Beatrice instead of Ramuh
+        state.LocalPlayerHand[0] = state.InitialPlayerCards[0];
+        state.LocalPlayerHand[1] = beatrice; // Received from opponent!
+        state.LocalPlayerHand[2] = state.InitialPlayerCards[2];
+        state.LocalPlayerHand[3] = state.InitialPlayerCards[3];
+        state.LocalPlayerHand[4] = state.InitialPlayerCards[4];
+
+        var (givenTier, takenTier) = RarityBudgetTracker.DetectDraftSwap(state);
+        Assert.Equal(ETriadCardRarity.Epic, givenTier);
+        Assert.Equal(ETriadCardRarity.Rare, takenTier);
+    }
+
+    [Fact]
+    public void UniversalDeckSampler_AssignsUnplacedKnownOpponentCardsToHiddenSlots()
+    {
+        var cardDb = TriadCardDB.Get();
+        cardDb.cards.Clear();
+        for (var i = 1; i <= 20; i++)
+        {
+            cardDb.cards.Add(new TriadCard(i, (ETriadCardRarity)(i % 5), ETriadCardType.None, 3, 3, 3, 3));
+        }
+
+        var state = new UniversalTriadState
+        {
+            LocalPlayerColor = ETriadCardOwner.Blue,
+            HiddenRedCount = 4
+        };
+
+        var givenRamuh = new TriadCard(99, ETriadCardRarity.Epic, ETriadCardType.None, 8, 8, 1, 8);
+        cardDb.cards.Add(givenRamuh);
+
+        // We know Red has Ramuh in their hidden hand (via Swap)
+        state.KnownOpponentCards.Add(givenRamuh);
+
+        var sampled = UniversalDeckSampler.SampleOpponentDecks(state, UniversalEngineMode.OpenTournamentDraft, sampleCount: 15);
+        Assert.Equal(15, sampled.Count);
+
+        // Every sampled deck must include Ramuh in one of the slots!
+        foreach (var deck in sampled)
+        {
+            var containsRamuh = false;
+            for (var slot = 0; slot < 5; slot++)
+            {
+                if (deck.cards[slot] != null && deck.cards[slot]!.Id == 99)
+                {
+                    containsRamuh = true;
+                    break;
+                }
+            }
+            Assert.True(containsRamuh, "Sampled deck must contain known unplaced opponent card (Ramuh)");
+        }
+    }
 }

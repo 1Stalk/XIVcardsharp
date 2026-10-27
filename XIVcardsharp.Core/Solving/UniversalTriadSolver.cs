@@ -124,8 +124,7 @@ public class UniversalTriadSolver
         }
 
         var maxEv = candidates.Max(c => c.EV);
-        var isEndgame = state.NumCardsPlaced >= 4;
-        var evTieThreshold = isEndgame ? 0.005f : 0.03f;
+        const float evTieThreshold = 0.005f;
 
         var topTier = candidates.Where(c => c.EV >= maxEv - evTieThreshold).ToList();
 
