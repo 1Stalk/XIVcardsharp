@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="XIVcardsharp.Core/XIVcardsharp.Core.csproj" />
+  <Project Path="XIVcardsharp.Tests/XIVcardsharp.Tests.csproj" />
+  <Project Path="XIVcardsharp/XIVcardsharp.csproj">
+    <Platform Project="x64" />
+  </Project>
+</Solution>
