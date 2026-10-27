@@ -39,22 +39,28 @@ public static class TriadTurnState
         }
 
         ref var value = ref unit->AtkValues[PlayerTurnAtkValueIndex];
-        if (value.Type != AtkValueType.Int)
+        var turnVal = value.Type switch
+        {
+            AtkValueType.Int => value.Int,
+            AtkValueType.UInt => (int)value.UInt,
+            _ => -1
+        };
+
+        if (turnVal < 0)
         {
             return false;
         }
 
         var expectedTurnVal = localColor == ETriadCardOwner.Red ? 2 : 1;
-        return value.Int == expectedTurnVal;
+        return turnVal == expectedTurnVal;
     }
 
-    public static bool IsBoardPickPhase(byte turnState) => turnState == 2;
+    public static bool IsBoardPickPhase(byte turnState) => turnState == (byte)TurnState.NormalMove;
 
-    public static bool IsForcedCardPickPhase(byte turnState) => turnState == 1;
+    public static bool IsForcedCardPickPhase(byte turnState) => turnState == (byte)TurnState.MaskedMove;
 
     public static bool CanAct(byte turnState, bool isPlayerTurn) =>
-        IsForcedCardPickPhase(turnState) ||
-        (IsBoardPickPhase(turnState) && isPlayerTurn);
+        isPlayerTurn || IsForcedCardPickPhase(turnState);
 
     public static unsafe bool IsTurnBannerVisible(AtkUnitBase* unit) =>
         unit is not null && HasTurnBannerText(unit->RootNode, 0);

@@ -49,7 +49,7 @@ public static unsafe class TriadAddonReader
         {
             var localPlayerName = Svc.Objects.LocalPlayer?.Name.TextValue ?? "";
             var level0 = GUINodeUtils.GetImmediateChildNodes(addon->AtkUnitBase.RootNode);
-            var redDescs = GetUIDescriptionRedPlayer(level0);
+            var redDescs = GetUIDescriptionRedPlayer(level0, addon->AtkUnitBase.RootNode);
             var isRedPlayerLocal = !string.IsNullOrEmpty(localPlayerName) &&
                 redDescs.Any(d => d.Contains(localPlayerName, StringComparison.OrdinalIgnoreCase));
             localColor = isRedPlayerLocal ? ETriadCardOwner.Red : ETriadCardOwner.Blue;
@@ -270,7 +270,7 @@ public static unsafe class TriadAddonReader
             .Distinct()];
     }
 
-    private static List<string> GetUIDescriptionRedPlayer(AtkResNode*[]? level0)
+    private static List<string> GetUIDescriptionRedPlayer(AtkResNode*[]? level0, AtkResNode* rootNode = null)
     {
         var listRedDesc = new List<string>();
         var nodeName0 = GUINodeUtils.PickNode(level0, 6, 12);
@@ -289,7 +289,33 @@ public static unsafe class TriadAddonReader
                 }
             }
         }
+        if (listRedDesc.Count == 0 && rootNode != null)
+        {
+            CollectVisibleTextNodes(rootNode, listRedDesc);
+        }
         return listRedDesc;
+    }
+
+    private static void CollectVisibleTextNodes(AtkResNode* node, List<string> output, int depth = 0)
+    {
+        if (node is null || depth > 24 || !node->IsVisible())
+        {
+            return;
+        }
+
+        if ((int)node->Type == (int)NodeType.Text)
+        {
+            var text = GUINodeUtils.GetNodeText(node)?.Trim();
+            if (!string.IsNullOrEmpty(text) && text.Length >= 3)
+            {
+                output.Add(text);
+            }
+        }
+
+        foreach (var child in GUINodeUtils.GetImmediateChildNodes(node) ?? [])
+        {
+            CollectVisibleTextNodes(child, output, depth + 1);
+        }
     }
 
     private static List<TriadGameModifier> ResolveModifiers(List<string> ruleNames)
