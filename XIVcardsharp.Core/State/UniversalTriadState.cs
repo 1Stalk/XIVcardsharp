@@ -108,4 +108,32 @@ public class UniversalTriadState
             return count;
         }
     }
+
+    public UniversalTriadState Clone()
+    {
+        return new UniversalTriadState
+        {
+            LocalPlayerColor = LocalPlayerColor,
+            HiddenBlueCount = HiddenBlueCount,
+            HiddenRedCount = HiddenRedCount,
+            ForcedCardIdx = ForcedCardIdx,
+            IsPlayerTurn = IsPlayerTurn,
+            TurnState = TurnState,
+            TurnBannerVisible = TurnBannerVisible,
+            NumCardsPlaced = NumCardsPlaced,
+            BlueHand = (TriadCard?[])BlueHand.Clone(),
+            BlueCardPlaced = (bool[])BlueCardPlaced.Clone(),
+            BlueCardRevealed = (bool[])BlueCardRevealed.Clone(),
+            KnownBlueCards = new List<TriadCard>(KnownBlueCards),
+            RedHand = (TriadCard?[])RedHand.Clone(),
+            RedCardPlaced = (bool[])RedCardPlaced.Clone(),
+            RedCardRevealed = (bool[])RedCardRevealed.Clone(),
+            KnownRedCards = new List<TriadCard>(KnownRedCards),
+            BoardCards = (TriadCard?[])BoardCards.Clone(),
+            BoardOwners = (ETriadCardOwner[])BoardOwners.Clone(),
+            Modifiers = new List<TriadGameModifier>(Modifiers),
+            RuleNames = new List<string>(RuleNames),
+            InitialPlayerCards = new List<TriadCard>(InitialPlayerCards)
+        };
+    }
 }

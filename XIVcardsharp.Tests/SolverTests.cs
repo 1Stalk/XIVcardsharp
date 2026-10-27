@@ -402,4 +402,65 @@ public class SolverTests
             Assert.True(containsRamuh, "Sampled deck must contain known unplaced opponent card (Ramuh)");
         }
     }
+
+    [Fact]
+    public void UniversalTriadState_Clone_CreatesDeepIndependentCopy()
+    {
+        var original = new UniversalTriadState
+        {
+            LocalPlayerColor = ETriadCardOwner.Blue,
+            HiddenRedCount = 3,
+            NumCardsPlaced = 2
+        };
+        var card = new TriadCard(42, ETriadCardRarity.Rare, ETriadCardType.None, 4, 4, 4, 4);
+        original.BlueHand[0] = card;
+        original.KnownRedCards.Add(card);
+        original.RuleNames.Add("Plus");
+
+        var cloned = original.Clone();
+
+        Assert.Equal(original.LocalPlayerColor, cloned.LocalPlayerColor);
+        Assert.Equal(original.HiddenRedCount, cloned.HiddenRedCount);
+        Assert.Equal(original.NumCardsPlaced, cloned.NumCardsPlaced);
+        Assert.Equal(card.Id, cloned.BlueHand[0]?.Id);
+        Assert.Single(cloned.KnownRedCards);
+        Assert.Single(cloned.RuleNames);
+
+        // Mutating cloned collections should not affect original
+        cloned.BlueHand[0] = null;
+        cloned.KnownRedCards.Clear();
+        cloned.RuleNames.Add("Same");
+
+        Assert.NotNull(original.BlueHand[0]);
+        Assert.Single(original.KnownRedCards);
+        Assert.Single(original.RuleNames);
+    }
+
+    [Fact]
+    public void UniversalTriadSolver_Cancellation_StopsSolve()
+    {
+        var state = new UniversalTriadState
+        {
+            LocalPlayerColor = ETriadCardOwner.Blue,
+            HiddenRedCount = 4
+        };
+        state.LocalPlayerHand[0] = new TriadCard(1, ETriadCardRarity.Common, ETriadCardType.None, 3, 3, 3, 3);
+        state.LocalPlayerHand[1] = new TriadCard(2, ETriadCardRarity.Common, ETriadCardType.None, 4, 4, 4, 4);
+
+        var cardDb = TriadCardDB.Get();
+        cardDb.cards.Clear();
+        cardDb.cards.Add(state.LocalPlayerHand[0]);
+        cardDb.cards.Add(state.LocalPlayerHand[1]);
+        cardDb.cards.Add(new TriadCard(3, ETriadCardRarity.Common, ETriadCardType.None, 2, 2, 2, 2));
+
+        var cts = new CancellationTokenSource();
+        cts.Cancel(); // Pre-cancelled token
+
+        var solver = new UniversalTriadSolver(UniversalEngineMode.UniversalMatch, sampleCount: 100);
+
+        Assert.Throws<OperationCanceledException>(() =>
+        {
+            solver.Solve(state, cts.Token);
+        });
+    }
 }
