@@ -24,7 +24,6 @@ SOFTWARE.
 
 ### Third-Party Notices
 
-Portions of the Triple Triad game simulation and modifier logic in `XIVcardsharp.Core.Engine`
-are adapted from:
-- **Saucy** (BSD 3-Clause License, Copyright (c) Puni.sh / Taurenkey / Kagekazu)
-- **FFTriadBuddy** (MIT License, Copyright (c) MgAl2O4)
+Portions of the Triple Triad simulation and rule modifier logic in `XIVcardsharp.Core.Engine`
+are adapted from the open-source **FFTriadBuddy** project (MIT License, Copyright (c) MgAl2O4).
+XIVcardsharp is an independent solver featuring custom PIMC deck sampling, Open Tournament draft evaluation, and direct Dalamud UI interop.

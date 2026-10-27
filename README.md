@@ -23,6 +23,10 @@ Open Tournaments · Tournament Draft · Battlehall & PvP · Friendly Matches
 
 Type `/cardsharp` in-game, pick a mode, and turn it on. The solver drafts optimal decks and plays winning moves automatically.
 
+## AI Transparency
+
+This plugin is developed under the [Dalamud AI Policy](https://dalamud.dev/plugin-publishing/ai-policy/) at the **Pair** level. Details on human contributions and AI tooling can be found in [AI-DECLARATION.md](AI-DECLARATION.md).
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE.md).
