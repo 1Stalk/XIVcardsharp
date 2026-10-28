@@ -49,10 +49,13 @@ public static unsafe class TriadAddonReader
         {
             var localPlayerName = Svc.Objects.LocalPlayer?.Name.TextValue ?? "";
             var level0 = GUINodeUtils.GetImmediateChildNodes(addon->AtkUnitBase.RootNode);
-            var redDescs = GetUIDescriptionRedPlayer(level0, addon->AtkUnitBase.RootNode);
+            var blueDescs = GetUIDescriptionBluePlayer(level0);
+            var redDescs = GetUIDescriptionRedPlayer(level0);
+            var isBluePlayerLocal = !string.IsNullOrEmpty(localPlayerName) &&
+                blueDescs.Any(d => d.Contains(localPlayerName, StringComparison.OrdinalIgnoreCase));
             var isRedPlayerLocal = !string.IsNullOrEmpty(localPlayerName) &&
                 redDescs.Any(d => d.Contains(localPlayerName, StringComparison.OrdinalIgnoreCase));
-            localColor = isRedPlayerLocal ? ETriadCardOwner.Red : ETriadCardOwner.Blue;
+            localColor = (isRedPlayerLocal && !isBluePlayerLocal) ? ETriadCardOwner.Red : ETriadCardOwner.Blue;
         }
 
         var level0Nodes = GUINodeUtils.GetImmediateChildNodes(addon->AtkUnitBase.RootNode);
@@ -268,6 +271,28 @@ public static unsafe class TriadAddonReader
         return [.. listRuleDesc
             .SelectMany(r => r.Split(['/', ',', '\n', '\r'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             .Distinct()];
+    }
+
+    private static List<string> GetUIDescriptionBluePlayer(AtkResNode*[]? level0)
+    {
+        var listBlueDesc = new List<string>();
+        var nodeName0 = GUINodeUtils.PickNode(level0, 5, 12);
+        var nodeArrNameL1 = GUINodeUtils.GetImmediateChildNodes(nodeName0);
+        var nodeNameL1 = GUINodeUtils.PickNode(nodeArrNameL1, 0, 5);
+        var nodeArrNameL2 = GUINodeUtils.GetAllChildNodes(nodeNameL1);
+        if (nodeArrNameL2 is not null)
+        {
+            foreach (var testNode in nodeArrNameL2)
+            {
+                if (!GUINodeUtils.IsNodeVisible(testNode)) continue;
+                var text = GUINodeUtils.GetNodeText(testNode);
+                if (!string.IsNullOrEmpty(text))
+                {
+                    listBlueDesc.Add(text);
+                }
+            }
+        }
+        return listBlueDesc;
     }
 
     private static List<string> GetUIDescriptionRedPlayer(AtkResNode*[]? level0, AtkResNode* rootNode = null)

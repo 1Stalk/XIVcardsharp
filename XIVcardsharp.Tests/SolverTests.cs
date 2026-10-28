@@ -463,4 +463,80 @@ public class SolverTests
             solver.Solve(state, cts.Token);
         });
     }
+
+    [Fact]
+    public void UniversalTriadState_RedPerspective_PropertiesMapCorrectly()
+    {
+        var state = new UniversalTriadState
+        {
+            LocalPlayerColor = ETriadCardOwner.Red,
+            HiddenBlueCount = 2,
+            HiddenRedCount = 0
+        };
+
+        var redCard1 = new TriadCard(10, ETriadCardRarity.Common, ETriadCardType.None, 4, 4, 4, 4);
+        var redCard2 = new TriadCard(11, ETriadCardRarity.Uncommon, ETriadCardType.None, 5, 5, 5, 5);
+        state.RedHand[0] = redCard1;
+        state.RedHand[1] = redCard2;
+
+        var blueCard1 = new TriadCard(20, ETriadCardRarity.Rare, ETriadCardType.None, 6, 6, 6, 6);
+        state.BlueHand[0] = blueCard1;
+        state.KnownBlueCards.Add(blueCard1);
+
+        // Perspective mapping verification
+        Assert.Equal(ETriadCardOwner.Red, state.LocalPlayerColor);
+        Assert.Equal(ETriadCardOwner.Blue, state.OpponentColor);
+        Assert.Same(state.RedHand, state.LocalPlayerHand);
+        Assert.Same(state.BlueHand, state.OpponentHand);
+        Assert.Same(state.RedCardPlaced, state.LocalCardPlaced);
+        Assert.Same(state.BlueCardPlaced, state.OpponentCardPlaced);
+        Assert.Equal(2, state.HiddenOpponentCount);
+        Assert.Single(state.KnownOpponentCards);
+        Assert.Equal(blueCard1.Id, state.KnownOpponentCards[0].Id);
+        Assert.Equal(2, state.AvailableLocalCardCount);
+    }
+
+    [Fact]
+    public void UniversalTriadSolver_SolvesCorrectly_WhenPlayerIsRed()
+    {
+        var state = new UniversalTriadState
+        {
+            LocalPlayerColor = ETriadCardOwner.Red,
+            HiddenBlueCount = 0,
+            NumCardsPlaced = 1
+        };
+
+        var cardDb = TriadCardDB.Get();
+        cardDb.cards.Clear();
+
+        var playerCard1 = new TriadCard(101, ETriadCardRarity.Common, ETriadCardType.None, 4, 4, 4, 4);
+        var playerCard2 = new TriadCard(102, ETriadCardRarity.Uncommon, ETriadCardType.None, 5, 5, 5, 5);
+        var oppCard1 = new TriadCard(201, ETriadCardRarity.Common, ETriadCardType.None, 3, 3, 3, 3);
+        var oppCard2 = new TriadCard(202, ETriadCardRarity.Common, ETriadCardType.None, 3, 3, 3, 3);
+
+        cardDb.cards.Add(playerCard1);
+        cardDb.cards.Add(playerCard2);
+        cardDb.cards.Add(oppCard1);
+        cardDb.cards.Add(oppCard2);
+
+        state.RedHand[0] = playerCard1;
+        state.RedHand[1] = playerCard2;
+
+        state.BlueHand[0] = oppCard1;
+        state.BlueHand[1] = oppCard2;
+        state.BlueCardPlaced[0] = true;
+
+        // Opponent (Blue) played oppCard1 at tile (0, 0)
+        state.BoardCards[0] = oppCard1;
+        state.BoardOwners[0] = ETriadCardOwner.Blue;
+
+        var solver = new UniversalTriadSolver(UniversalEngineMode.OpenTournamentDraft, sampleCount: 10);
+        var (bestCard, bestBoard, _, candidates) = solver.Solve(state);
+
+        Assert.InRange(bestCard, 0, 1);
+        Assert.InRange(bestBoard, 1, 8); // Board slot 0 is already occupied
+        Assert.Null(state.BoardCards[bestBoard]);
+        Assert.NotNull(state.LocalPlayerHand[bestCard]);
+    }
 }
+
