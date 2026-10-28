@@ -15,6 +15,7 @@
 
 ## JetBrains Rider
 .idea/
+docs
 
 ## Logs
 *.log
