@@ -2,6 +2,8 @@ using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using DalamudDesignKit;
+using DalamudDesignKit.Theme;
 using ECommons;
 using ECommons.DalamudServices;
 using XIVcardsharp.Execution;
@@ -30,6 +32,10 @@ public sealed class Plugin : IDalamudPlugin
 
         Configuration = pluginInterface.GetPluginConfig() as Configuration ?? new Configuration();
         Configuration.Initialize(pluginInterface);
+
+        // Initialize DalamudDesignKit and activate purple accent theme
+        DesignKit.Initialize(pluginInterface.UiBuilder);
+        ThemeTokens.Current = PalettePresets.HyperViolet;
 
         // Load game cards from Lumina into TriadCardDB
         LuminaCardLoader.LoadCards(Svc.Data);

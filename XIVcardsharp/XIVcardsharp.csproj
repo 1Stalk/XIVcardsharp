@@ -16,6 +16,8 @@
         <ProjectReference Include="..\XIVcardsharp.Core\XIVcardsharp.Core.csproj" />
     </ItemGroup>
 
+    <Import Project="..\..\..\shared\DalamudDesignKit\DalamudDesignKit.targets" />
+
     <ItemGroup>
         <None Update="XIVcardsharp.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
