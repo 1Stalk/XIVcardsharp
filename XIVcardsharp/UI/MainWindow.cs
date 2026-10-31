@@ -25,7 +25,7 @@ public class MainWindow : AppWindowShell
 {
     private bool _settingsExpanded = false;
 
-    public MainWindow() : base("XIVcardsharp###XIVcardsharpMainWindow", new Vector2(360, 220), 300f, 130f)
+    public MainWindow() : base("XIVcardsharp###XIVcardsharpMainWindow", new Vector2(360, 250), 320f, 180f)
     {
         // Lock to HyperViolet (purple accent theme)
         Palette = PalettePresets.HyperViolet;
@@ -150,7 +150,7 @@ public class MainWindow : AppWindowShell
         ImGui.Dummy(new Vector2(0f, 4f * scale));
 
         var startY = ImGui.GetCursorPosY();
-        const float targetDraftHeight = 88f;
+        const float targetDraftHeight = 94f;
         var minHeight = targetDraftHeight * scale;
 
         if (isDraftOpen)
