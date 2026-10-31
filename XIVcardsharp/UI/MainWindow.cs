@@ -23,11 +23,9 @@ namespace XIVcardsharp.UI;
 /// </summary>
 public class MainWindow : AppWindowShell
 {
-    private string _draftStatusMessage = string.Empty;
     private bool _settingsExpanded = false;
-    private bool _wasDraftOpen = false;
 
-    public MainWindow() : base("XIVcardsharp###XIVcardsharpMainWindow", new Vector2(360, 210), 300f, 130f)
+    public MainWindow() : base("XIVcardsharp###XIVcardsharpMainWindow", new Vector2(360, 220), 300f, 130f)
     {
         // Lock to HyperViolet (purple accent theme)
         Palette = PalettePresets.HyperViolet;
@@ -151,23 +149,47 @@ public class MainWindow : AppWindowShell
         dl.AddLine(curPos, new Vector2(rightEdge, curPos.Y), Paint.Col(ThemeTokens.Hairline), 1f);
         ImGui.Dummy(new Vector2(0f, 4f * scale));
 
+        var startY = ImGui.GetCursorPosY();
+        const float targetDraftHeight = 88f;
+        var minHeight = targetDraftHeight * scale;
+
         if (isDraftOpen)
         {
-            if (!_wasDraftOpen)
-            {
-                _draftStatusMessage = string.Empty;
-            }
-            _wasDraftOpen = true;
             DrawActiveDraftContent(draftRules, scale);
         }
         else
         {
-            _wasDraftOpen = false;
-            SimpleWidgets.StatusDot("Draft Standby", ThemeTokens.TextMuted, pulsing: false);
-            if (ImGui.IsItemHovered())
-            {
-                Tooltip.Show("Queue for a Battlehall Open Tournament at the Gold Saucer.\nRecommendations will appear here automatically during card drafting.");
-            }
+            DrawStandbyDraftContent(scale);
+        }
+
+        var elapsed = ImGui.GetCursorPosY() - startY;
+        if (elapsed < minHeight)
+        {
+            ImGui.Dummy(new Vector2(0f, minHeight - elapsed));
+        }
+    }
+
+    private void DrawStandbyDraftContent(float scale)
+    {
+        // 1. Current RULES line in Standby
+        using (ImRaii.PushColor(ImGuiCol.Text, ThemeTokens.TextMuted))
+        {
+            ImGui.TextUnformatted("RULES:");
+        }
+        ImGui.SameLine();
+        ImGui.TextDisabled("Standby");
+        ImGui.Dummy(new Vector2(0f, 4f * scale));
+
+        // 2. SET 1, SET 2, SET 3 placeholders
+        DrawDraftRow(1, -1, null, Palette.Primary);
+        DrawDraftRow(2, -1, null, Palette.Primary);
+        DrawDraftRow(3, -1, null, Palette.Primary);
+
+        // 3. Caption
+        ImGui.Dummy(new Vector2(0f, 2f * scale));
+        using (ImRaii.PushColor(ImGuiCol.Text, ThemeTokens.TextMuted))
+        {
+            ImGui.TextUnformatted("[Standard Mode] Waiting for Open Tournament draft...");
         }
     }
 
@@ -175,36 +197,28 @@ public class MainWindow : AppWindowShell
     {
         var eval = TournamentDraftManager.GetCurrentEvaluation(out var draftState);
 
-        SimpleWidgets.StatusDot("Tournament Draft Active", Palette.Primary, pulsing: true);
-        ImGui.Dummy(new Vector2(0f, 3f * scale));
-
-        var hasRules = draftRules.Count > 0;
-        var hasScore = eval != null && eval.Score > 0f;
-        if (hasRules || hasScore)
+        // 1. Current RULES
+        using (ImRaii.PushColor(ImGuiCol.Text, ThemeTokens.TextMuted))
         {
-            if (hasRules)
+            ImGui.TextUnformatted("RULES:");
+        }
+        if (draftRules != null && draftRules.Count > 0)
+        {
+            for (var r = 0; r < draftRules.Count; r++)
             {
-                using (ImRaii.PushColor(ImGuiCol.Text, ThemeTokens.TextMuted))
-                {
-                    ImGui.TextUnformatted("RULES:");
-                }
-                for (var r = 0; r < draftRules.Count; r++)
-                {
-                    ImGui.SameLine();
-                    SimpleWidgets.StatusBadge(draftRules[r], true, Palette.Primary);
-                }
+                ImGui.SameLine();
+                SimpleWidgets.StatusBadge(draftRules[r], true, Palette.Primary);
             }
-
-            if (hasScore && eval != null)
-            {
-                if (hasRules) ImGui.SameLine();
-                SimpleWidgets.MetricChip("Score", $"{eval.Score:F1}", Palette.Primary,
-                    "Algorithmic evaluation score for the recommended draft combination.");
-            }
-
-            ImGui.Dummy(new Vector2(0f, 4f * scale));
+        }
+        else
+        {
+            ImGui.SameLine();
+            SimpleWidgets.StatusBadge("Standard", false);
         }
 
+        ImGui.Dummy(new Vector2(0f, 4f * scale));
+
+        // 2. SET 1, SET 2, SET 3 & [Standard Mode]... caption
         if (eval != null && draftState != null)
         {
             DrawDraftRow(1, eval.Set1Option, draftState.Set1Options, Palette.Primary);
@@ -219,29 +233,6 @@ public class MainWindow : AppWindowShell
                     ImGui.TextWrapped(eval.Summary);
                 }
             }
-
-            ImGui.Dummy(new Vector2(0f, 6f * scale));
-
-            // Apply button centered inside SettingsGroup
-            var btnText = "Apply Choices In-Game";
-            var btnWidth = PillButton.Width(btnText, FontAwesomeIcon.CheckCircle);
-            var availWidth = SettingsGroup.ContentWidth;
-            if (availWidth > btnWidth)
-            {
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (availWidth - btnWidth) * 0.5f);
-            }
-
-            if (PillButton.Draw("##btn_apply_draft", btnText, Palette.Primary, PillButton.Emphasis.Filled, FontAwesomeIcon.CheckCircle, height: 24f))
-            {
-                if (TournamentDraftManager.ApplyOptimalDraft(out var msg))
-                {
-                    _draftStatusMessage = msg;
-                }
-                else
-                {
-                    _draftStatusMessage = $"Draft failed: {msg}";
-                }
-            }
         }
         else
         {
@@ -252,35 +243,24 @@ public class MainWindow : AppWindowShell
             Paint.IndeterminateBar(dl, barPos, barWidth, 3f * scale, Palette.Primary);
             ImGui.Dummy(new Vector2(barWidth, 6f * scale));
         }
-
-        if (!string.IsNullOrEmpty(_draftStatusMessage))
-        {
-            ImGui.Dummy(new Vector2(0f, 4f * scale));
-            var isErr = _draftStatusMessage.StartsWith("Draft failed", StringComparison.OrdinalIgnoreCase);
-            var col = isErr ? new Vector4(0.95f, 0.35f, 0.35f, 1.0f) : new Vector4(0.35f, 0.90f, 0.55f, 1.0f);
-            SimpleWidgets.StatusDot(isErr ? "Draft Selection Failed" : "Draft Choices Applied", col, pulsing: false);
-
-            ImGui.Indent(14f * scale);
-            using (ImRaii.PushColor(ImGuiCol.Text, ThemeTokens.TextSecondary))
-            {
-                ImGui.TextWrapped(_draftStatusMessage);
-            }
-            ImGui.Unindent(14f * scale);
-        }
     }
 
-    private static void DrawDraftRow(int rowNumber, int optionIndex, List<TournamentDraftOption> options, Vector4 accent)
+    private static void DrawDraftRow(int rowNumber, int optionIndex, List<TournamentDraftOption>? options, Vector4 accent)
     {
         var scale = ImGuiHelpers.GlobalScale;
 
+        SimpleWidgets.StatusBadge($"SET {rowNumber}", false);
+        ImGui.SameLine();
+
         if (options == null || optionIndex < 0 || optionIndex >= options.Count)
         {
-            ImGui.TextDisabled($"Set {rowNumber}: -");
+            ImGui.TextDisabled("-");
+            ImGui.Dummy(new Vector2(0f, 2f * scale));
             return;
         }
 
-        SimpleWidgets.StatusBadge($"SET {rowNumber}", false);
-        ImGui.SameLine();
+        var opt = options[optionIndex];
+
         SimpleWidgets.StatusBadge($"CHOICE #{optionIndex + 1}", true, accent);
         ImGui.SameLine();
 
