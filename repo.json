@@ -1,11 +1,11 @@
-[
+﻿[
   {
     "Author": "1Stalk",
     "Name": "XIVcardsharp",
     "Punchline": "Smart Triple Triad solver and Open Tournament assistant.",
     "Description": "Triple Triad solver and autoplay for Open Tournaments and PvP. Features optimal draft selection, hidden hand sampling, and full rule support.",
     "InternalName": "XIVcardsharp",
-    "AssemblyVersion": "1.0.0.7",
+    "AssemblyVersion": "1.0.0.8",
     "RepoUrl": "https://github.com/1Stalk/XIVcardsharp",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 15,
