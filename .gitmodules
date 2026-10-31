@@ -1,0 +1,3 @@
+[submodule "shared/DalamudDesignKit"]
+	path = shared/DalamudDesignKit
+	url = https://github.com/1Stalk/DalamudDesignKit.git
