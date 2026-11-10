@@ -196,30 +196,45 @@ public static unsafe class TriadAddonReader
         }
 
         var numU = addonCard.NumSideU;
-        var numL = addonCard.NumSideL;
+        // In FFXIV's native TripleTriadCard memory struct, side stats are located at:
+        // offset 0x83: Top (Up), offset 0x84: Bottom (Down), offset 0x85: Left, offset 0x86: Right.
+        // FFXIVClientStructs reversed offsets 0x85 and 0x86 (naming 0x85 NumSideR and 0x86 NumSideL).
+        // Therefore, addonCard.NumSideR corresponds to game Left, and addonCard.NumSideL corresponds to game Right.
+        var numL = addonCard.NumSideR;
         var numD = addonCard.NumSideD;
-        var numR = addonCard.NumSideR;
+        var numR = addonCard.NumSideL;
 
-        var matched = TriadCardDB.Get().Find(numU, numL, numD, numR);
+        // Try texture first if available to disambiguate duplicate-stat cards or provide exact card ID
+        var texPath = GetCardTexture(addonCard);
+        if (!string.IsNullOrEmpty(texPath))
+        {
+            var texCard = TriadCardDB.Get().FindByTexture(texPath);
+            if (texCard != null && texCard.IsValid())
+            {
+                return texCard;
+            }
+        }
+
+        var cardRarity = (ETriadCardRarity)Math.Clamp((int)addonCard.CardRarity, 0, 4);
+        var cardType = (ETriadCardType)Math.Clamp((int)addonCard.CardType, 0, 4);
+
+        // Try exact match with type and rarity to resolve duplicate-stat cards if texture is unavailable
+        var matched = TriadCardDB.Get().Find(numU, numL, numD, numR, cardType, cardRarity);
         if (matched != null && matched.IsValid())
         {
             return matched;
         }
 
-        var texPath = GetCardTexture(addonCard);
-        if (!string.IsNullOrEmpty(texPath))
+        matched = TriadCardDB.Get().Find(numU, numL, numD, numR);
+        if (matched != null && matched.IsValid())
         {
-            var texFallback = TriadCardDB.Get().FindByTexture(texPath);
-            if (texFallback != null && texFallback.IsValid())
-            {
-                return texFallback;
-            }
+            return matched;
         }
 
         return new TriadCard(
             -1,
-            (ETriadCardRarity)Math.Clamp((int)addonCard.CardRarity, 0, 4),
-            (ETriadCardType)Math.Clamp((int)addonCard.CardType, 0, 4),
+            cardRarity,
+            cardType,
             numU, numD, numL, numR,
             0, 0,
             $"Card [{numU}-{numL}-{numD}-{numR}]");
