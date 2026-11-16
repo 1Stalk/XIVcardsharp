@@ -11,6 +11,10 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(DALAMUD_HOME)' != ''">
+        <DalamudLibPath>$(DALAMUD_HOME)/</DalamudLibPath>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="ECommons" Version="3.2.1.22" />
         <ProjectReference Include="..\XIVcardsharp.Core\XIVcardsharp.Core.csproj" />
