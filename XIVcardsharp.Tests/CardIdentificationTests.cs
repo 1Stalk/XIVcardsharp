@@ -306,7 +306,7 @@ public class CardIdentificationTests
     [Fact]
     public void Verify_Lumina_EmeraldAndUltima_GameData()
     {
-        var sqpackPath = @"C:\Games\Steam\steamapps\common\FINAL FANTASY XIV Online\game\sqpack";
+        var sqpackPath = Environment.GetEnvironmentVariable("FFXIV_SQPACK_PATH") ?? @"C:\Games\Steam\steamapps\common\FINAL FANTASY XIV Online\game\sqpack";
         if (!System.IO.Directory.Exists(sqpackPath)) return;
 
         var lumina = new Lumina.GameData(sqpackPath);
@@ -343,7 +343,7 @@ public class CardIdentificationTests
     [Fact]
     public void Verify_UserHand_Cards_In_Lumina()
     {
-        var sqpackPath = @"C:\Games\Steam\steamapps\common\FINAL FANTASY XIV Online\game\sqpack";
+        var sqpackPath = Environment.GetEnvironmentVariable("FFXIV_SQPACK_PATH") ?? @"C:\Games\Steam\steamapps\common\FINAL FANTASY XIV Online\game\sqpack";
         if (!System.IO.Directory.Exists(sqpackPath)) return;
 
         var lumina = new Lumina.GameData(sqpackPath);
@@ -388,7 +388,7 @@ public class CardIdentificationTests
     [Fact]
     public void Verify_AllMirroredPairs_In_RealGameData_ResolveCorrectly()
     {
-        var sqpackPath = @"C:\Games\Steam\steamapps\common\FINAL FANTASY XIV Online\game\sqpack";
+        var sqpackPath = Environment.GetEnvironmentVariable("FFXIV_SQPACK_PATH") ?? @"C:\Games\Steam\steamapps\common\FINAL FANTASY XIV Online\game\sqpack";
         if (!System.IO.Directory.Exists(sqpackPath)) return;
 
         var lumina = new Lumina.GameData(sqpackPath);

@@ -43,6 +43,9 @@ jobs:
       - name: Build Plugin (Release)
         run: dotnet build XIVcardsharp.slnx --configuration Release --no-restore
 
+      - name: Run Tests
+        run: dotnet test XIVcardsharp.slnx --configuration Release --no-build
+
       - name: Prepare Release Assets
         id: prepare_assets
         shell: pwsh
