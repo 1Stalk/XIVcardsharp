@@ -44,15 +44,18 @@ public class TriadCardDB
 
     public TriadCard? FindById(int cardId)
     {
-        if (cardId < 0 || cardId >= cards.Count)
+        if (cardId < 0)
         {
             return null;
         }
 
-        var knownCard = cards[cardId];
-        if (knownCard != null && knownCard.Id == cardId)
+        if (cardId < cards.Count)
         {
-            return knownCard;
+            var knownCard = cards[cardId];
+            if (knownCard != null && knownCard.Id == cardId)
+            {
+                return knownCard;
+            }
         }
 
         return cards.Find(x => x != null && x.Id == cardId);
@@ -68,6 +71,8 @@ public class TriadCardDB
             return null;
         }
 
+        texPath = texPath.Replace('\\', '/');
+
         if (TryMapLegacy082Texture(texPath, out var legacyCardId))
         {
             return FindById(legacyCardId);
@@ -79,6 +84,15 @@ public class TriadCardDB
             return FindById(smallIconId);
         }
 
+        // Support direct short file names like "087312.tex" or "088312.tex"
+        var slashPos = texPath.LastIndexOf('/');
+        var fileName = slashPos >= 0 ? texPath.Substring(slashPos + 1) : texPath;
+        if ((fileName.StartsWith("087", StringComparison.Ordinal) || fileName.StartsWith("088", StringComparison.Ordinal)) &&
+            TryReadThreeDigitId(fileName, 3, out var directIconId))
+        {
+            return FindById(directIconId);
+        }
+
         return null;
     }
 
@@ -87,7 +101,7 @@ public class TriadCardDB
         cardId = -1;
         const string pattern = "082000/082";
         var patternPos = texPath.IndexOf(pattern, StringComparison.Ordinal);
-        if (patternPos <= 0 || !TryReadThreeDigitId(texPath, patternPos + pattern.Length, out var rawId))
+        if (patternPos < 0 || !TryReadThreeDigitId(texPath, patternPos + pattern.Length, out var rawId))
         {
             return false;
         }
@@ -100,6 +114,10 @@ public class TriadCardDB
         {
             cardId = rawId - 100;
         }
+        else if (rawId > 0)
+        {
+            cardId = rawId;
+        }
 
         return cardId is >= 0 and < 1000;
     }
@@ -108,7 +126,7 @@ public class TriadCardDB
     {
         cardId = -1;
         var patternPos = texPath.IndexOf(pattern, StringComparison.Ordinal);
-        if (patternPos <= 0 || !TryReadThreeDigitId(texPath, patternPos + pattern.Length, out cardId))
+        if (patternPos < 0 || !TryReadThreeDigitId(texPath, patternPos + pattern.Length, out cardId))
         {
             return false;
         }
